@@ -1,70 +1,68 @@
 
-//------------------------------------------------------------------------------
 #include <iostream>
 #include <stdexcept>
 
 class Token
 {
 public:
-    char kind;     // what kind of token
-    double value;  // for numbers: a value
-    Token(char ch) // make a Token from a char
-        : kind(ch), value(0)
-    {
-    }
-    Token(char ch, double val) // make a Token from a char and a double
-        : kind(ch), value(val)
-    {
-    }
+    Token(char p_kind, double p_value = 0.0);
+
+    void set_kind(char p_kind);
+    char kind() const;
+
+    void set_value(double p_value);
+    double value() const;
+
+private:
+    // what kind of token.
+    char m_kind;
+    // for numbers: a value.
+    double m_value;
 };
 
-//------------------------------------------------------------------------------
+Token::Token(char p_kind, double p_value) : m_kind(p_kind), m_value(p_value) {}
+
+void Token::set_kind(char p_kind) { m_kind = p_kind; }
+char Token::kind() const { return m_kind; }
+
+void Token::set_value(double p_value) { m_value = p_value; }
+double Token::value() const { return m_value; }
 
 class TokenStream
 {
 public:
-    TokenStream();        // make a TokenStream that reads from cin
-    Token get();           // get a Token (get() is defined elsewhere)
-    void putback(Token t); // put a Token back
+    TokenStream();
+    Token get();
+    void putback(Token p_token);
+
 private:
-    bool full;    // is there a Token in the buffer?
-    Token buffer; // here is where we keep a Token put back using putback()
+    bool m_full;
+    Token m_buffer;
 };
 
-//------------------------------------------------------------------------------
+TokenStream::TokenStream() : m_full(false), m_buffer(' ') {}
 
-// The constructor just sets full to indicate that the buffer is empty:
-TokenStream::TokenStream()
-    : full(false), buffer(0) // no Token in buffer
+// The putback() member function puts its argument back into the TokenStream's m_buffer:
+void TokenStream::putback(Token p_token)
 {
-}
-
-//------------------------------------------------------------------------------
-
-// The putback() member function puts its argument back into the TokenStream's buffer:
-void TokenStream::putback(Token t)
-{
-    if (full)
+    if (m_full)
         throw std::runtime_error("putback() into a full buffer");
-    buffer = t;  // copy t to buffer
-    full = true; // buffer is now full
+    m_buffer = p_token; // copy p_token to m_buffer
+    m_full = true;      // m_buffer is now m_full
 }
-
-//------------------------------------------------------------------------------
 
 Token TokenStream::get()
 {
-    if (full)
-    { // do we already have a Token ready?
-        // remove token from buffer
-        full = false;
-        return buffer;
+    if (m_full)
+    {
+        m_full = false;
+        return m_buffer;
     }
 
-    char ch;
-    std::cin >> ch; // note that >> skips whitespace (space, newline, tab, etc.)
+    char kind(' ');
+    std::cin >> kind; // note that >> skips whitespace (space, newline, tab, etc.)
 
-    switch (ch)
+    switch (kind)
     {
     case ';': // for "print"
     case 'q': // for "quit"
@@ -74,7 +72,7 @@ Token TokenStream::get()
     case '-':
     case '*':
     case '/':
-        return Token(ch); // let each character represent itself
+        return Token(kind); // let each character represent itself.
     case '.':
     case '0':
     case '1':
@@ -87,123 +85,40 @@ Token TokenStream::get()
     case '8':
     case '9':
     {
-        std::cin.putback(ch); // put digit back into the input stream
-        double val;
-        std::cin >> val;             // read a floating-point number
-        return Token('8', val); // let '8' represent "a number"
+        std::cin.putback(kind); // put digit back into the input stream.
+        double value(0.0);
+        std::cin >> value;        // read a floating-point number.
+        return Token('8', value); // let '8' represent "a number".
     }
     default:
         throw std::runtime_error("Bad token");
     }
 }
 
-//------------------------------------------------------------------------------
+TokenStream ts; // provides get() and putback().
 
-TokenStream ts; // provides get() and putback()
-
-//------------------------------------------------------------------------------
-
-double expression(); // declaration so that primary() can call expression()
-
-//------------------------------------------------------------------------------
-
-// deal with numbers and parentheses
-double primary()
-{
-    Token t = ts.get();
-    switch (t.kind)
-    {
-    case '(': // handle '(' expression ')'
-    {
-        double d = expression();
-        t = ts.get();
-        if (t.kind != ')')
-            throw std::runtime_error("')' expected");
-        return d;
-    }
-    case '8':           // we use '8' to represent a number
-        return t.value; // return the number's value
-    default:
-        throw std::runtime_error("primary expected");
-    }
-}
-
-//------------------------------------------------------------------------------
-
-// deal with *, /, and %
-double term()
-{
-    double left = primary();
-    Token t = ts.get(); // get the next token from token stream
-
-    while (true)
-    {
-        switch (t.kind)
-        {
-        case '*':
-            left *= primary();
-            t = ts.get();
-            break;
-        case '/':
-        {
-            double d = primary();
-            if (d == 0)
-                throw std::runtime_error("divide by zero");
-            left /= d;
-            t = ts.get();
-            break;
-        }
-        default:
-            ts.putback(t); // put t back into the token stream
-            return left;
-        }
-    }
-}
-
-//------------------------------------------------------------------------------
-
-// deal with + and -
-double expression()
-{
-    double left = term(); // read and evaluate a Term
-    Token t = ts.get();   // get the next token from token stream
-
-    while (true)
-    {
-        switch (t.kind)
-        {
-        case '+':
-            left += term(); // evaluate Term and add
-            t = ts.get();
-            break;
-        case '-':
-            left -= term(); // evaluate Term and subtract
-            t = ts.get();
-            break;
-        default:
-            ts.putback(t); // put t back into the token stream
-            return left;   // finally: no more + or -: return the answer
-        }
-    }
-}
-
-//------------------------------------------------------------------------------
+// deal with + and -.
+double expression();
+// deal with numbers and parentheses.
+double primary();
+// deal with *, /, and %.
+double term();
 
 int main()
 try
 {
-    double val(0.0);
+    double value(0.0);
     while (std::cin)
     {
-        Token t = ts.get();
+        Token token = ts.get();
 
-        if (t.kind == 'q')
-            break;         // 'q' for quit
-        if (t.kind == ';') // ';' for "print now"
-            std::cout << "=" << val << '\n';
+        if (token.kind() == 'q')
+            break;               // 'q' for quit
+        if (token.kind() == ';') // ';' for "print now"
+            std::cout << "=" << value << '\n';
         else
-            ts.putback(t);
-        val = expression();
+            ts.putback(token);
+        value = expression();
     }
 }
 catch (std::exception &e)
@@ -217,4 +132,80 @@ catch (...)
     return 2;
 }
 
-//------------------------------------------------------------------------------
+// deal with + and -
+double expression()
+{
+    double left = term();   // read and evaluate a Term.
+    Token token = ts.get(); // get the next token from token stream.
+
+    while (true)
+    {
+        switch (token.kind())
+        {
+        case '+':
+            left += term(); // evaluate Term and add.
+            token = ts.get();
+            break;
+        case '-':
+            left -= term(); // evaluate Term and subtract.
+            token = ts.get();
+            break;
+        default:
+            ts.putback(token); // put token back into the token stream.
+            return left;       // finally: no more + or -: return the answer.
+        }
+    }
+}
+
+// deal with *, /, and %.
+double term()
+{
+    double left = primary();
+    Token token = ts.get(); // get the next token from token stream.
+
+    while (true)
+    {
+        switch (token.kind())
+        {
+        case '*':
+            left *= primary();
+            token = ts.get();
+            break;
+        case '/':
+        {
+            double d = primary();
+            if (d == 0)
+                throw std::runtime_error("divide by zero");
+            left /= d;
+            token = ts.get();
+            break;
+        }
+        default:
+            ts.putback(token); // put token back into the token stream.
+            return left;
+        }
+    }
+    return 0.0;
+}
+
+// deal with numbers and parentheses.
+double primary()
+{
+    Token token = ts.get();
+    switch (token.kind())
+    {
+    case '(': // handle '(' expression ')'.
+    {
+        double d = expression();
+        token = ts.get();
+        if (token.kind() != ')')
+            throw std::runtime_error("')' expected");
+        return d;
+    }
+    case '8':                // we use '8' to represent a number.
+        return token.value(); // return the number's value.
+    default:
+        throw std::runtime_error("primary expected");
+    }
+    return 0.0;
+}
