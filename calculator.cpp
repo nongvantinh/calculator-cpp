@@ -64,7 +64,7 @@ Token TokenStream::get()
 
     switch (kind)
     {
-    case ';': // for "print"
+    case '=': // for "print"
     case 'q': // for "quit"
     case '(':
     case ')':
@@ -85,9 +85,10 @@ Token TokenStream::get()
     case '8':
     case '9':
     {
-        std::cin.putback(kind); // put digit back into the input stream.
+        // Put digit back to get a complete number.
+        std::cin.putback(kind);
         double value(0.0);
-        std::cin >> value;        // read a floating-point number.
+        std::cin >> value;
         return Token('8', value); // let '8' represent "a number".
     }
     default:
@@ -95,7 +96,7 @@ Token TokenStream::get()
     }
 }
 
-TokenStream ts; // provides get() and putback().
+TokenStream stream; // provides get() and putback().
 
 // deal with + and -.
 double expression();
@@ -107,18 +108,18 @@ double term();
 int main()
 try
 {
-    double value(0.0);
+    double result(0.0);
     while (std::cin)
     {
-        Token token = ts.get();
+        Token token = stream.get();
 
         if (token.kind() == 'q')
             break;               // 'q' for quit
-        if (token.kind() == ';') // ';' for "print now"
-            std::cout << "=" << value << '\n';
+        if (token.kind() == '=') // '=' for "print now"
+            std::cout << result << '\n';
         else
-            ts.putback(token);
-        value = expression();
+            stream.putback(token);
+        result = expression();
     }
 }
 catch (std::exception &e)
@@ -136,7 +137,7 @@ catch (...)
 double expression()
 {
     double left = term();   // read and evaluate a Term.
-    Token token = ts.get(); // get the next token from token stream.
+    Token token = stream.get(); // get the next token from token stream.
 
     while (true)
     {
@@ -144,14 +145,14 @@ double expression()
         {
         case '+':
             left += term(); // evaluate Term and add.
-            token = ts.get();
+            token = stream.get();
             break;
         case '-':
             left -= term(); // evaluate Term and subtract.
-            token = ts.get();
+            token = stream.get();
             break;
         default:
-            ts.putback(token); // put token back into the token stream.
+            stream.putback(token); // put token back into the token stream.
             return left;       // finally: no more + or -: return the answer.
         }
     }
@@ -161,7 +162,7 @@ double expression()
 double term()
 {
     double left = primary();
-    Token token = ts.get(); // get the next token from token stream.
+    Token token = stream.get(); // get the next token from token stream.
 
     while (true)
     {
@@ -169,7 +170,7 @@ double term()
         {
         case '*':
             left *= primary();
-            token = ts.get();
+            token = stream.get();
             break;
         case '/':
         {
@@ -177,11 +178,11 @@ double term()
             if (d == 0)
                 throw std::runtime_error("divide by zero");
             left /= d;
-            token = ts.get();
+            token = stream.get();
             break;
         }
         default:
-            ts.putback(token); // put token back into the token stream.
+            stream.putback(token); // put token back into the token stream.
             return left;
         }
     }
@@ -191,21 +192,21 @@ double term()
 // deal with numbers and parentheses.
 double primary()
 {
-    Token token = ts.get();
+    Token token = stream.get();
     switch (token.kind())
     {
     case '(': // handle '(' expression ')'.
     {
-        double d = expression();
-        token = ts.get();
+        double result(expression());
+        token = stream.get();
         if (token.kind() != ')')
-            throw std::runtime_error("')' expected");
-        return d;
+            throw std::runtime_error("')' expected.");
+        return result;
     }
-    case '8':                // we use '8' to represent a number.
+    case '8':                 // we use '8' to represent a number.
         return token.value(); // return the number's value.
     default:
-        throw std::runtime_error("primary expected");
+        throw std::runtime_error("primary expected.");
     }
     return 0.0;
 }
