@@ -231,6 +231,10 @@ double primary()
             initialize = true;
             result += token.value();
             break;
+        case '-':
+            return -primary();
+        case '+':
+            return primary();
         case '!':
             if (!initialize)
                 throw std::runtime_error("Invalid operation, primary expected.");

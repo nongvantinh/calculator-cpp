@@ -20,6 +20,8 @@ That’s the way a C++ compiler deals with its source. Actually, “tokenizing�
         * _remainder (modulo)_
 * **Primary**:
     *   **Number**
+    *   "-"**Number**
+    *   "+"**Number**
     *   "(" **Expression** ")"
         * _grouping_
     *   "{" **Expression** "}"
