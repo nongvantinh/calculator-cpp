@@ -22,5 +22,9 @@ That’s the way a C++ compiler deals with its source. Actually, “tokenizing�
     *   **Number**
     *   "(" **Expression** ")"
         * _grouping_
+    *   "{" **Expression** "}"
+        * _grouping_
+    *   **Expression**"!"
+        * _factorial_
 * **Number**:
     *   **floating-point-literal**

@@ -68,10 +68,13 @@ Token TokenStream::get()
     case 'q': // for "quit"
     case '(':
     case ')':
+    case '{':
+    case '}':
     case '+':
     case '-':
     case '*':
     case '/':
+    case '!':
         return Token(kind); // let each character represent itself.
     case '.':
     case '0':
@@ -104,6 +107,7 @@ double expression();
 double primary();
 // deal with *, /, and %.
 double term();
+double factorial(double p_number);
 
 int main()
 try
@@ -133,10 +137,15 @@ catch (...)
     return 2;
 }
 
+double factorial(double p_number)
+{
+    return p_number <= 1 ? 1 : p_number * factorial(p_number - 1);
+}
+
 // deal with + and -
 double expression()
 {
-    double left = term();   // read and evaluate a Term.
+    double left = term();       // read and evaluate a Term.
     Token token = stream.get(); // get the next token from token stream.
 
     while (true)
@@ -153,7 +162,7 @@ double expression()
             break;
         default:
             stream.putback(token); // put token back into the token stream.
-            return left;       // finally: no more + or -: return the answer.
+            return left;           // finally: no more + or -: return the answer.
         }
     }
 }
@@ -192,21 +201,45 @@ double term()
 // deal with numbers and parentheses.
 double primary()
 {
-    Token token = stream.get();
-    switch (token.kind())
+    double result(0.0);
+    bool initialize(false); // Flag to identify invalid operation on primary: e.g: 5!!
+    while (true)
     {
-    case '(': // handle '(' expression ')'.
-    {
-        double result(expression());
-        token = stream.get();
-        if (token.kind() != ')')
-            throw std::runtime_error("')' expected.");
-        return result;
+        Token token = stream.get();
+        switch (token.kind())
+        {
+        case '(': // handle '(' expression ')'.
+        {
+            initialize = true;
+            result = expression();
+            token = stream.get();
+            if (token.kind() != ')')
+                throw std::runtime_error("')' expected.");
+            break;
+        }
+        case '{': // Handle '{' expression '}'.
+        {
+            initialize = true;
+            result = expression();
+            token = stream.get();
+            if (token.kind() != '}')
+                throw std::runtime_error("'}' expected.");
+            break;
+        }
+        // we use '8' to represent a number.
+        case '8':
+            initialize = true;
+            result += token.value();
+            break;
+        case '!':
+            if (!initialize)
+                throw std::runtime_error("Invalid operation, primary expected.");
+            return factorial(result);
+        default:
+            stream.putback(token); // put token back into the token stream.
+            return result;
+        }
     }
-    case '8':                 // we use '8' to represent a number.
-        return token.value(); // return the number's value.
-    default:
-        throw std::runtime_error("primary expected.");
-    }
+
     return 0.0;
 }
